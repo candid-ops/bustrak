@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
-    protected \ = [
+    protected $policies = [
         //
     ];
 
     public function boot(): void
     {
-        \->registerPolicies();
+        $this->registerPolicies();
         //
     }
 }
