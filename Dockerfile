@@ -10,17 +10,15 @@ RUN docker-php-ext-install gd pdo_mysql mbstring exif pcntl bcmath zip pdo_sqlit
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy application files
 COPY . /var/www/app/
-
 WORKDIR /var/www/app
 
-# Create .env file FIRST (before any artisan commands)
+# Create .env with static APP_KEY
 RUN echo "APP_NAME=BusTrak" > .env && \
     echo "APP_ENV=production" >> .env && \
     echo "APP_DEBUG=true" >> .env && \
     echo "APP_URL=https://bustrak-1l6c.onrender.com" >> .env && \
-    echo "APP_KEY=" >> .env && \
+    echo "APP_KEY=base64:YOUR_APP_KEY_HERE_32_CHARACTERS_LONG=" >> .env && \
     echo "LOG_CHANNEL=stack" >> .env && \
     echo "LOG_LEVEL=debug" >> .env && \
     echo "DB_CONNECTION=sqlite" >> .env && \
@@ -40,11 +38,10 @@ RUN echo "APP_NAME=BusTrak" > .env && \
     echo "MAIL_FROM_ADDRESS=ordinaryfox479@gmail.com" >> .env && \
     echo "MAIL_FROM_NAME=BusTrak" >> .env
 
-# Verify .env was created
-RUN cat .env
-
 # Create directories
-RUN mkdir -p /var/www/app/storage/framework/{sessions,views,cache} && \
+RUN mkdir -p /var/www/app/storage/framework/sessions && \
+    mkdir -p /var/www/app/storage/framework/views && \
+    mkdir -p /var/www/app/storage/framework/cache && \
     mkdir -p /var/www/app/bootstrap/cache && \
     mkdir -p /var/www/app/database
 
@@ -53,10 +50,7 @@ RUN touch /var/www/app/database/database.sqlite && \
     chmod 666 /var/www/app/database/database.sqlite
 
 # Install dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
-
-# Generate app key
-RUN php artisan key:generate --force
+RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
 # Run migrations
 RUN php artisan migrate --force || true
@@ -70,22 +64,12 @@ RUN a2enmod rewrite
 RUN rm -rf /var/www/html && ln -s /var/www/app/public /var/www/html
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-RUN cat > /etc/apache2/conf-available/laravel.conf <<'EOF'
-<Directory /var/www/html>
-    Options Indexes FollowSymLinks
-    AllowOverride None
-    Require all granted
-    
-    <IfModule mod_rewrite.c>
-        RewriteEngine On
-        RewriteCond %{REQUEST_FILENAME} !-d
-        RewriteCond %{REQUEST_FILENAME} !-f
-        RewriteRule ^ index.php [L]
-    </IfModule>
-</Directory>
-EOF
-
-RUN a2enconf laravel
+# Allow .htaccess overrides
+RUN echo '<Directory /var/www/html>' >> /etc/apache2/apache2.conf && \
+    echo '    Options Indexes FollowSymLinks' >> /etc/apache2/apache2.conf && \
+    echo '    AllowOverride All' >> /etc/apache2/apache2.conf && \
+    echo '    Require all granted' >> /etc/apache2/apache2.conf && \
+    echo '</Directory>' >> /etc/apache2/apache2.conf
 
 EXPOSE 8080
 CMD ["apache2-foreground"]
