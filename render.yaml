@@ -1,0 +1,51 @@
+﻿services:
+  - type: web
+    name: bustrak
+    runtime: image
+    repo: https://github.com/candid-ops/bustrak
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bustrak-db
+          property: connectionString
+      - key: MPESA_ENV
+        value: sandbox
+      - key: MPESA_CONSUMER_KEY
+        value: TUlgpGC3FTnHLMfCNF8KUeqND6Lh74FjXr6fsGx7EZiRXKtC
+      - key: MPESA_CONSUMER_SECRET
+        value: kto47KYNoyvMtw1DF291rffTtriPSUSKr3tQIvr7mFwfYbLAyfEdShuxWlXYaFYd
+      - key: MPESA_SHORTCODE
+        value: 174379
+      - key: MPESA_PASSKEY
+        value: bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
+      - key: MPESA_CALLBACK_URL
+        value: https://bustrak.onrender.com/api/mpesa/callback
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USERNAME
+        value: ordinaryfox479@gmail.com
+      - key: MAIL_PASSWORD
+        value: orluaqjdcassfqpa
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        value: ordinaryfox479@gmail.com
+      - key: MAIL_FROM_NAME
+        value: BusTrak
+
+databases:
+  - name: bustrak-db
+    plan: free
