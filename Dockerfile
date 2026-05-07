@@ -1,28 +1,43 @@
 ﻿FROM php:8.1-apache
 
-# Install dependencies
+# Install dependencies including SQLite
 RUN apt-get update && apt-get install -y \
     libpng-dev libjpeg-dev libfreetype6-dev \
-    libonig-dev libxml2-dev zip unzip git curl libzip-dev
+    libonig-dev libxml2-dev zip unzip git curl libzip-dev sqlite3 libsqlite3-dev
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd pdo_mysql mbstring exif pcntl bcmath zip
+RUN docker-php-ext-install gd pdo_mysql mbstring exif pcntl bcmath zip pdo_sqlite
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY . /var/www/app/
 WORKDIR /var/www/app
 
+# Create storage and cache directories
+RUN mkdir -p /var/www/app/storage/framework/{sessions,views,cache}
+RUN mkdir -p /var/www/app/bootstrap/cache
+
+# Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-RUN chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache
-RUN chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache
+# Generate app key
+RUN php artisan key:generate --force
+
+# Create SQLite database if not exists
+RUN touch /var/www/app/database/database.sqlite
+
+# Run migrations
+RUN php artisan migrate --force || true
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache /var/www/app/database
+RUN chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache /var/www/app/database
 
 RUN a2enmod rewrite
 RUN rm -rf /var/www/html && ln -s /var/www/app/public /var/www/html
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Create a clean Apache config with proper closing tags
+# Configure Apache
 RUN cat > /etc/apache2/conf-available/laravel.conf <<'EOF'
 <Directory /var/www/html>
     Options Indexes FollowSymLinks
