@@ -22,19 +22,23 @@ RUN a2enmod rewrite
 RUN rm -rf /var/www/html && ln -s /var/www/app/public /var/www/html
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Configure Apache with Laravel routing (no .htaccess needed)
-RUN echo '<Directory /var/www/html>' > /etc/apache2/conf-available/laravel.conf && \
-    echo '    Options Indexes FollowSymLinks' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '    AllowOverride None' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '    Require all granted' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '    <IfModule mod_rewrite.c>' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '        RewriteEngine On' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '        RewriteCond %{REQUEST_FILENAME} !-d' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '        RewriteCond %{REQUEST_FILENAME} !-f' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '        RewriteRule ^ index.php [L]' >> /etc/apache2/conf-available/laravel.conf && \
-    echo '    </IfModule>' >> /etc/apache2/conf-available/laravel.conf && \
-    a2enconf laravel
+# Create a clean Apache config with proper closing tags
+RUN cat > /etc/apache2/conf-available/laravel.conf <<'EOF'
+<Directory /var/www/html>
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+    
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^ index.php [L]
+    </IfModule>
+</Directory>
+EOF
+
+RUN a2enconf laravel
 
 EXPOSE 8080
 CMD ["apache2-foreground"]
