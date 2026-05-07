@@ -20,26 +20,35 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-pl
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Simplified Apache configuration - replace entire default site
+# DIRECT APPROACH: Modify the default Apache configuration
 RUN a2enmod rewrite
-RUN rm -f /etc/apache2/sites-available/000-default.conf
-RUN rm -f /etc/apache2/sites-enabled/000-default.conf
 
-# Create new config file directly using echo (all in one command)
-RUN echo '<VirtualHost *:8080>' > /etc/apache2/sites-available/000-default.conf && \
-    echo '    DocumentRoot /var/www/html/public' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '    <Directory /var/www/html/public>' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '        Options Indexes FollowSymLinks' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '        AllowOverride All' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '        Require all granted' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '    </Directory>' >> /etc/apache2/sites-available/000-default.conf && \
-    echo '</VirtualHost>' >> /etc/apache2/sites-available/000-default.conf
+# Change the default document root in apache2.conf
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/apache2.conf
 
-# Enable the site
+# Also modify the directory directive
+RUN sed -i 's|<Directory /var/www/html/>|<Directory /var/www/html/public>|g' /etc/apache2/apache2.conf
+
+# Override the default site configuration completely
+RUN echo '<VirtualHost *:8080>
+    DocumentRoot /var/www/html/public
+    <Directory /var/www/html/public>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+
+# Disable default site and re-enable
+RUN a2dissite 000-default.conf || true
 RUN a2ensite 000-default.conf
 
-# Set ServerName to suppress warnings
+# Set ServerName
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# Debug: Show what we changed
+RUN grep -n "DocumentRoot" /etc/apache2/apache2.conf
+RUN cat /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 8080
 
