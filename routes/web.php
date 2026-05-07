@@ -98,4 +98,14 @@ Route::prefix('admin')
         // ... existing routes
     });
 
+    Route::get('/debug', function() {
+    return [
+        'public_exists' => is_dir(public_path()),
+        'index_exists' => file_exists(public_path('index.php')),
+        'artisan_exists' => file_exists(base_path('artisan')),
+        'files_in_public' => scandir(public_path()),
+        'laravel_version' => app()->version(),
+    ];
+});
+
     
