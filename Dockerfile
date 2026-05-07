@@ -13,39 +13,34 @@ RUN docker-php-ext-install gd pdo_mysql mbstring exif pcntl bcmath zip
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy application files
-COPY . /var/www/html/
+COPY . /var/www/app/
 
-WORKDIR /var/www/html
+WORKDIR /var/www/app
 
 # Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache
+RUN chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache
 
 # Enable rewrite module
 RUN a2enmod rewrite
 
-# Create Apache configuration directly
+# Remove default Apache index and web root
+RUN rm -rf /var/www/html && \
+    ln -s /var/www/app/public /var/www/html
+
+# Set ServerName
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Replace the default site with our configuration
-RUN cat > /etc/apache2/sites-available/000-default.conf <<'EOF'
-<VirtualHost *:8080>
-    DocumentRoot /var/www/html/public
-    <Directory /var/www/html/public>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-    ErrorLog /error.log
-    CustomLog /access.log combined
-</VirtualHost>
-EOF
-
-# Enable the site
-RUN a2ensite 000-default.conf
+# Ensure Directory index is set correctly
+RUN echo '<Directory /var/www/html>' > /etc/apache2/conf-available/laravel.conf && \
+    echo '    Options Indexes FollowSymLinks' >> /etc/apache2/conf-available/laravel.conf && \
+    echo '    AllowOverride All' >> /etc/apache2/conf-available/laravel.conf && \
+    echo '    Require all granted' >> /etc/apache2/conf-available/laravel.conf && \
+    echo '</Directory>' >> /etc/apache2/conf-available/laravel.conf && \
+    a2enconf laravel
 
 EXPOSE 8080
 
