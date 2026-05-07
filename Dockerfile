@@ -32,25 +32,18 @@ RUN mkdir -p /var/www/app/storage/framework/sessions && \
     touch /var/www/app/database/database.sqlite && \
     chmod 666 /var/www/app/database/database.sqlite
 
-# Install composer
+# Install composer WITHOUT any scripts
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs --no-scripts
 
-# Clear and cache config
-RUN php artisan config:clear || true
-RUN php artisan cache:clear || true
-
-# Run migrations
-RUN php artisan migrate --force || true
+# Skip all artisan commands to avoid provider errors
 
 RUN chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache /var/www/app/database && \
     chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache /var/www/app/database
 
-# Apache configuration - NO .htaccess
+# Apache configuration
 RUN a2enmod rewrite
 RUN rm -rf /var/www/html && ln -s /var/www/app/public /var/www/html
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-
-# Disable .htaccess completely
 RUN sed -i 's/AllowOverride All/AllowOverride None/g' /etc/apache2/apache2.conf
 
 EXPOSE 8080
