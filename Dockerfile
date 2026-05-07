@@ -20,17 +20,25 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-pl
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Copy custom Apache config
-COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
-
-# Force Apache to use our config
-RUN a2dissite 000-default.conf || true
-RUN a2ensite 000-default.conf
+# Simplified Apache configuration - replace entire default site
 RUN a2enmod rewrite
+RUN rm -f /etc/apache2/sites-available/000-default.conf
+RUN rm -f /etc/apache2/sites-enabled/000-default.conf
 
-# Override default document root
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/apache2.conf || true
+# Create new config file directly using echo (all in one command)
+RUN echo '<VirtualHost *:8080>' > /etc/apache2/sites-available/000-default.conf && \
+    echo '    DocumentRoot /var/www/html/public' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    <Directory /var/www/html/public>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        Options Indexes FollowSymLinks' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        AllowOverride All' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        Require all granted' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    </Directory>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '</VirtualHost>' >> /etc/apache2/sites-available/000-default.conf
 
+# Enable the site
+RUN a2ensite 000-default.conf
+
+# Set ServerName to suppress warnings
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 EXPOSE 8080
