@@ -10,7 +10,9 @@ RUN docker-php-ext-install gd pdo_mysql mbstring exif pcntl bcmath zip pdo_sqlit
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Copy application files (including .env)
 COPY . /var/www/app/
+
 WORKDIR /var/www/app
 
 # Create storage and cache directories
@@ -20,11 +22,11 @@ RUN mkdir -p /var/www/app/bootstrap/cache
 # Install dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-# Generate app key
-RUN php artisan key:generate --force
-
-# Create SQLite database if not exists
+# Create SQLite database
 RUN touch /var/www/app/database/database.sqlite
+
+# Generate app key (now .env exists)
+RUN php artisan key:generate --force
 
 # Run migrations
 RUN php artisan migrate --force || true
@@ -33,11 +35,11 @@ RUN php artisan migrate --force || true
 RUN chown -R www-data:www-data /var/www/app/storage /var/www/app/bootstrap/cache /var/www/app/database
 RUN chmod -R 775 /var/www/app/storage /var/www/app/bootstrap/cache /var/www/app/database
 
+# Configure Apache
 RUN a2enmod rewrite
 RUN rm -rf /var/www/html && ln -s /var/www/app/public /var/www/html
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Configure Apache
 RUN cat > /etc/apache2/conf-available/laravel.conf <<'EOF'
 <Directory /var/www/html>
     Options Indexes FollowSymLinks
