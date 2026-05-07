@@ -3,9 +3,8 @@
 .env
 .env.*
 !.env.example
-storage/logs/*.log
+storage/*.log
+vendor
 .DS_Store
 .idea
 .vscode
-*.sqlite
-vendor

@@ -20,14 +20,14 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
 
 RUN a2enmod rewrite
-RUN echo '\<VirtualHost *:8080\>
-    DocumentRoot /var/www/html/public
-    \<Directory /var/www/html/public\>
-        Options Indexes FollowSymLinks
-        AllowOverride All
-        Require all granted
-    \</Directory\>
-\</VirtualHost\>' > /etc/apache2/sites-available/000-default.conf
+RUN echo '<VirtualHost *:8080>' > /etc/apache2/sites-available/000-default.conf && \
+    echo '    DocumentRoot /var/www/html/public' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    <Directory /var/www/html/public>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        Options Indexes FollowSymLinks' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        AllowOverride All' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '        Require all granted' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '    </Directory>' >> /etc/apache2/sites-available/000-default.conf && \
+    echo '</VirtualHost>' >> /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 8080
 
